@@ -43,6 +43,8 @@ use crate::{
     NodeExecutorStreamPart,
 };
 
+use std::sync::atomic::AtomicU32;
+
 const NVMRC_VERSION: &str = include_str!("../../../.nvmrc");
 const HEALTH_CHECK_INTERVAL: Duration = Duration::from_millis(100);
 const MAX_HEALTH_CHECK_ATTEMPTS: u32 = 50;
@@ -50,6 +52,7 @@ const MAX_HEALTH_CHECK_ATTEMPTS: u32 = 50;
 pub struct LocalNodeExecutor {
     inner: Arc<Mutex<Option<InnerLocalNodeExecutor>>>,
     config: LocalNodeExecutorConfig,
+    consecutive_timeouts: AtomicU32,
 }
 
 struct LocalNodeExecutorConfig {
@@ -65,6 +68,7 @@ struct InnerLocalNodeExecutor {
     _source_dir: TempDir,
     client: reqwest::Client,
     _server_handle: Child,
+    consecutive_timeouts: u32,
 }
 
 impl InnerLocalNodeExecutor {
@@ -119,6 +123,7 @@ impl InnerLocalNodeExecutor {
                     _source_dir: source_dir,
                     client,
                     _server_handle: server_handle,
+                    consecutive_timeouts: 0,
                 });
             }
             tokio::time::sleep(HEALTH_CHECK_INTERVAL).await;
